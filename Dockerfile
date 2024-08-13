@@ -9,7 +9,8 @@ RUN sqlite3 /data/template.db <schema.sql
 FROM python:3
 
 # where is the SQLite3 database stored?
-ENV OAUTH_TAKER_DATABASE=/data/oauth.db
+ENV DATABASE=/data/oauth.db
+#ENV BASE_URI
 VOLUME /data
 
 # what host/port does Flask bind *inside* the container?

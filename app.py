@@ -5,8 +5,8 @@ import sqlite3
 import os
 import json
 
-DATABASE = os.getenv('TOKEN_DATABASE', 'app.db')
-BASE_URI = os.getenv('TOKEN_BASE_URI', 'http://localhost/')
+DATABASE = os.getenv('DATABASE', 'app.db')
+BASE_URI = os.getenv('BASE_URI', 'http://localhost/')
 if BASE_URI.endswith('/'):
   BASE_URI = BASE_URI[:-1]
 
@@ -23,8 +23,8 @@ def order(a,b):
   return a, b
 
 MIN_TOKEN_LIFETIME, MAX_TOKEN_LIFETIME = order(
-  bound(int(os.getenv('MIN_TOKEN_LIFETIME', 30)),    5,  3600),
-  bound(int(os.getenv('MAX_TOKEN_LIFETIME', 40)), 3600, 86400))
+  bound(int(os.getenv('MIN_TOKEN_LIFETIME',  300)),    5,  3600),
+  bound(int(os.getenv('MAX_TOKEN_LIFETIME', 3600)), 3600, 86400))
 
 # allow refresh at between 50% and 90% of lifetime
 TOKEN_REFRESH_BUDGET = bound(int(os.getenv('TOKEN_REFRESH_BUDGET', 75)), 50, 90)
