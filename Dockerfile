@@ -1,5 +1,6 @@
 FROM alpine:3 as db
 RUN apk add sqlite
+WORKDIR /data
 COPY schema.sql .
 RUN sqlite3 /data/template.db <schema.sql
 
