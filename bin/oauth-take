@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Useful environment variables:
+#
+#  - OT_ENDPOINT - A URL prefix for your oauth-taker endpoint address
+#  - OT_API_KEY  - The API key to use for authenticated requests
+#
+
+ENDPOINT=${OT_ENDPOINT:-}
+URL=
+if [[ -n ${1:-} ]]; then
+  URL=$1
+  shift
+fi
+
+if [[ -n ${OT_API_KEY:-} ]]; then
+  exec curl -sL $ENDPOINT$URL -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'Authorization: API-Key '$OT_API_KEY "$@"
+else
+  exec curl -sL $ENDPOINT$URL -H 'Content-Type: application/json' -H 'Accept: application/json' "$@"
+fi
