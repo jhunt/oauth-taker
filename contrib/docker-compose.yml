@@ -8,6 +8,7 @@ services:
       - 5000:5000
     environment:
       - BASE_URI=https://ot.example.com
+      - DATABASE=/data/oauth.db
     labels: # this part is for dproxy; DM me if you're curious
       - com.huntprod.docker.route=ot.example.com
       - com.huntprod.docker.port=5000
