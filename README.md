@@ -141,3 +141,35 @@ date is now in the past.
 A sample Docker Compose recipe is included in `contrib/`; it
 defines the oauth-taker application itself (the `app` service) and
 a small shell loop to refresh every X seconds, configurable.
+
+The `refresh` service prints out some useful logs so that you can
+see when and what is being refreshed.  Here's a sample transcript
+from my own lab:
+
+```
+refresh-1  | fetch https://dl-cdn.alpinelinux.org/alpine/v3.20/main/x86_64/APKINDEX.tar.gz
+refresh-1  | fetch https://dl-cdn.alpinelinux.org/alpine/v3.20/community/x86_64/APKINDEX.tar.gz
+refresh-1  | (1/10) Installing ca-certificates (20240705-r0)
+refresh-1  | (2/10) Installing brotli-libs (1.1.0-r2)
+refresh-1  | (3/10) Installing c-ares (1.28.1-r0)
+refresh-1  | (4/10) Installing libunistring (1.2-r0)
+refresh-1  | (5/10) Installing libidn2 (2.3.7-r0)
+refresh-1  | (6/10) Installing nghttp2-libs (1.62.1-r0)
+refresh-1  | (7/10) Installing libpsl (0.21.5-r1)
+refresh-1  | (8/10) Installing zstd-libs (1.5.6-r0)
+refresh-1  | (9/10) Installing libcurl (8.9.0-r0)
+refresh-1  | (10/10) Installing curl (8.9.0-r0)
+refresh-1  | Executing busybox-1.36.1-r29.trigger
+refresh-1  | Executing ca-certificates-20240705-r0.trigger
+refresh-1  | OK: 13 MiB in 24 packages
+refresh-1  | [2024-08-13 18:46:47+0000] starting up; checking every 300 seconds.
+refresh-1  | [2024-08-13 18:51:47+0000] []
+refresh-1  | [2024-08-13 18:56:50+0000] []
+refresh-1  | [2024-08-13 19:01:53+0000] []
+refresh-1  | [2024-08-13 19:06:59+0000] []
+refresh-1  | [2024-08-13 19:12:05+0000] []
+refresh-1  | [2024-08-13 19:17:11+0000] []
+refresh-1  | [2024-08-13 19:22:14+0000] []
+refresh-1  | [2024-08-13 19:27:14+0000] ["vv/azure/t0"]
+refresh-1  | [2024-08-13 19:32:15+0000] []
+```
