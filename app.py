@@ -263,6 +263,10 @@ def token(url):
     return {}, 404
   return token.exportable(BASE_URI)
 
+@app.route('/v', methods=['GET'])
+def version():
+  return {'v': '0.1'}
+
 @app.route('/r', methods=['POST'])
 @api_key_required()
 def refresh():
