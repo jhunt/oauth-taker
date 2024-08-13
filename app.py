@@ -158,7 +158,16 @@ class Token():
     return Token(r[0], r[1], json.loads(r[2]))
 
   def insert(self, db, expires_in):
-    db.cursor().execute(f'''
+    c = db.cursor()
+
+    # clear out the old token (if one exists)
+    c.execute(f'''
+      delete from tokens
+       where url = ?
+    ''', (self.url,))
+
+    # save the new token
+    c.execute(f'''
       insert into tokens
                (url, handler_url, token_json,
                 refresh_after)
@@ -166,6 +175,8 @@ class Token():
                 datetime(current_timestamp,
                          '+{expiry(expires_in)} seconds'))
     ''', (self.url, self.handler_url, json.dumps(self.token)))
+
+    # make it stick
     db.commit()
 
   def save(self, db, expires_in):
@@ -221,13 +232,16 @@ def ui(url):
   # split() call is [].split, not "".split
   url = '/'.join(url.split('/'))
 
+  handler = Handler.get(url, get_db())
   if request.method == 'GET':
-    handler = Handler.get(url, get_db())
     if handler is None:
       return 'no dice.', 404
     return handler.ui(BASE_URI)
 
   elif request.method == 'POST':
+    if handler is not None:
+      return {'error':'already exists'}
+
     details = request.json
     handler = Handler(url, details['kind'], details['config'])
     handler.insert(get_db())
