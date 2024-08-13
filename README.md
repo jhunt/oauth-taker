@@ -1,7 +1,7 @@
 oauth-taker
 ===========
 
-    I solemnly swear I am up to no good.
+> I solemnly swear I am up to no good.
 
 This project is an Oauth2 power tool for securing and refreshing
 access tokens so that other services don't have to.  It uses
