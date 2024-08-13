@@ -135,3 +135,9 @@ $ curl -H 'Authorization: API-Key 12345' \
 
 The second key would not work, given that its `disabled_after`
 date is now in the past.
+
+## Operationalizing
+
+A sample Docker Compose recipe is included in `contrib/`; it
+defines the oauth-taker application itself (the `app` service) and
+a small shell loop to refresh every X seconds, configurable.

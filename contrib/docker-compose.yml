@@ -1,0 +1,33 @@
+version: '3'
+services:
+  app:
+    image: filefrog/oauth-taker
+    volumes:
+      - ./_/data:/data
+    ports:
+      - 5000:5000
+    environment:
+      - BASE_URI=https://ot.example.com
+    labels: # this part is for dproxy; DM me if you're curious
+      - com.huntprod.docker.route=ot.example.com
+      - com.huntprod.docker.port=5000
+
+  refresh:
+    image: alpine:3
+    environment:
+        # THE FOLLOWING NEEDS TO BE CHANGED
+      - API_KEY=an-api-key-you-provisioned...
+      - EVERY=300
+    command:
+      - /bin/sh
+      - -c
+      - |
+        trap 'exit 1' INT TERM KILL HUP
+        apk add curl
+        echo "[$$(date +'%Y-%m-%d %H:%M:%S%z')] starting up; checking every $$EVERY seconds."
+        while /bin/true; do
+          sleep $$EVERY
+          echo -n "[$$(date +'%Y-%m-%d %H:%M:%S%z')] "
+          curl -X POST -s http://app:5000/r -H "Authorization: API-Key $$API_KEY"
+        done
+        echo "[$$(date +'%Y-%m-%d %H:%M:%S%z')] shutting down."
