@@ -38,19 +38,24 @@ def get_db():
     db = g._database = sqlite3.connect(DATABASE)
   return db
 
-def api_key_required(f):
-  @wraps(f)
-  def inner(*args, **kwargs):
-    key = None
-    if 'authorization' in request.headers and request.headers['authorization'].startswith('API-Key '):
-      key = request.headers['authorization'][8:]
-    if key is None:
-      return make_response(jsonify({'error': 'Authorization header required'}), 401)
-    r = get_db().cursor().execute('select key from in_force_api_keys where key = ?', (key,))
-    if r.fetchone() is None:
-      return make_response(jsonify({'error': 'Authorization key invalid'}), 403)
-    return f(*args, **kwargs)
-  return inner
+def api_key_required(methods=[]):
+  def wrapper(fn):
+    @wraps(fn)
+    def decorator(*args, **kwargs):
+      if len(methods) > 0 and request.method not in methods:
+        return fn(*args, **kwargs)
+
+      key = None
+      if 'authorization' in request.headers and request.headers['authorization'].startswith('API-Key '):
+        key = request.headers['authorization'][8:]
+      if key is None:
+        return make_response(jsonify({'error': 'Authorization header required'}), 401)
+      r = get_db().cursor().execute('select key from in_force_api_keys where key = ?', (key,))
+      if r.fetchone() is None:
+        return make_response(jsonify({'error': 'Authorization key invalid'}), 403)
+      return fn(*args, **kwargs)
+    return decorator
+  return wrapper
 
 class Handler():
   def __init__(self, url, kind, config):
@@ -210,7 +215,7 @@ def close_connection(exception):
     db.close()
 
 @app.route('/_/<path:url>', methods=['GET', 'POST'])
-@api_key_required
+@api_key_required(methods=['POST'])
 def ui(url):
   # url will come in with "/" list elements; this
   # split() call is [].split, not "".split
@@ -248,7 +253,7 @@ def auth(url):
   return 'bad request.', 400
 
 @app.route('/t/<path:url>')
-@api_key_required
+@api_key_required()
 def token(url):
   # url will come in with "/" list elements; this
   # split() call is [].split, not "".split
@@ -259,7 +264,7 @@ def token(url):
   return token.exportable(BASE_URI)
 
 @app.route('/r', methods=['POST'])
-@api_key_required
+@api_key_required()
 def refresh():
   r = []
   for token in Token.needing_refresh(get_db()):
