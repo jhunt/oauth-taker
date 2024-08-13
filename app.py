@@ -86,7 +86,7 @@ class Handler():
   def ui(self, base_uri):
     return render_template_string('''<script>
 const q = Object.fromEntries(
-  document.location.search.replace(/^\?/, '').split('&').map(s => [
+  document.location.search.replace(/^\\?/, '').split('&').map(s => [
     decodeURIComponent(s.split(/=/, 2)[0]),
     decodeURIComponent(s.split(/=/, 2)[1]),
   ]));
