@@ -63,6 +63,13 @@ class Handler():
     self.kind = kind
     self.config = config
 
+  def build(url, kind, config):
+    if kind == 'microsoft/v1':
+      return MicrosoftV1Handler(url, kind, config)
+    if kind == 'zoho/v1':
+      return ZohoV1Handler(url, kind, config)
+    raise f'unrecognized handler kind "{kind}"'
+
   def get(url, db):
     r = db.cursor().execute('''
       select url,
@@ -73,7 +80,10 @@ class Handler():
     ''', (url,)).fetchone()
     if r is None:
       return None
-    return Handler(r[0], r[1], json.loads(r[2]))
+    return Handler.build(r[0], # url
+                         r[1], # kind
+                         json.loads(r[2]), # config
+                        )
 
   def insert(self, db):
     db.cursor().execute('''
@@ -83,6 +93,16 @@ class Handler():
     ''', (self.url, self.kind, json.dumps(self.config)))
     db.commit()
 
+  def ui(self, base_uri):
+    raise 'handler.ui() not implemented'
+
+  def exchange_code(self, id, code, base_uri):
+    raise 'handler.exchange_code() not implemented'
+
+  def refresh_token(self, refresh_token):
+    raise 'handler.refresh_token() not implemented'
+
+class MicrosoftV1Handler(Handler):
   def ui(self, base_uri):
     return render_template_string('''<script>
 const q = Object.fromEntries(
@@ -128,6 +148,91 @@ if (!('t' in q)) {
     got['refresh_token'] = r['refresh_token']
     return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
+  def refresh_token(self, refresh_token, base_uri):
+    r = requests.post(
+      f'https://login.microsoftonline.com/{self.config["tenant_id"]}/oauth2/v2.0/token',
+      data={
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'client_id': self.config['client_id'],
+        'client_secret': self.config['client_secret'],
+        'scope': ' '.join(self.config['scopes']),
+        'redirect_uri': '/'.join([base_uri, 'a', self.handler_url]),
+      }
+    ).json()
+
+    print('REFRESH TOKEN::')
+    print(json.dumps(r, indent=2))
+
+    got = self.config.copy()
+    got['access_token'] = r['access_token']
+    got['refresh_token'] = r['refresh_token']
+    return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
+
+class ZohoV1Handler(Handler):
+  def ui(self, base_uri):
+    return render_template_string('''<script>
+const q = Object.fromEntries(
+  document.location.search.replace(/^\\?/, '').split('&').map(s => [
+    decodeURIComponent(s.split(/=/, 2)[0]),
+    decodeURIComponent(s.split(/=/, 2)[1]),
+  ]));
+if (!('t' in q)) {
+  document.location.href = 'https://accounts.zoho.com/oauth/v2/auth' +
+    '?client_id={{ client_id }}' +
+    '&response_type=code' +
+    '&redirect_uri=' + encodeURIComponent('{{ redirect_uri }}') +
+    '&scope=' + encodeURIComponent('{{ scopes }}') +
+    '&access_type=offline';
+} else {
+  document.write('<pre style="white-space: pre-wrap">');
+  document.write(JSON.stringify(q, null, '  '));
+  document.write('</pre>');
+}</script>''',
+    client_id    = self.config['client_id'],
+    redirect_uri = '/'.join([base_uri, 'a', self.url]),
+    scopes       = ' '.join(self.config['scopes'])
+  )
+
+  def exchange_code(self, id, code, base_uri):
+    r = requests.post(
+      f'https://accounts.zoho.com/oauth/v2/token',
+      data={
+        'client_id': self.config['client_id'],
+        'client_secret': self.config['client_secret'],
+        'code': code,
+        'redirect_uri': '/'.join([base_uri, 'a', self.url]),
+        'grant_type': 'authorization_code',
+      }
+    ).json()
+    print('EXCHANGE CODE::')
+    print(json.dumps(r, indent=2))
+
+    got = self.config.copy()
+    got['access_token'] = r['access_token']
+    got['refresh_token'] = r['refresh_token']
+    return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
+
+  def refresh_token(self, refresh_token, base_uri):
+    r = requests.post(
+      f'https://accounts.zoho.com/oauth/v2/token',
+      data={
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'client_id': self.config['client_id'],
+        'client_secret': self.config['client_secret'],
+        'scope': ' '.join(self.config['scopes']),
+        'redirect_uri': '/'.join([base_uri, 'a', self.handler_url]),
+      }
+    ).json()
+
+    print('REFRESH TOKEN::')
+    print(json.dumps(r, indent=2))
+
+    got = self.config.copy()
+    got['access_token'] = r['access_token']
+    got['refresh_token'] = r['refresh_token']
+    return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
 class Token():
   def __init__(self, url, handler_url, token):
@@ -137,13 +242,23 @@ class Token():
 
   def needing_refresh(db):
     r = db.cursor().execute('''
-      select url,
-             handler_url,
-             token_json
+      select tokens.url,
+             tokens.handler_url,
+             tokens.token_json,
+
+             handlers.kind,
+             handlers.config
+
         from tokens
        where refresh_after < current_timestamp
     ''')
-    return [Token(t[0], t[1], json.loads(t[2])) for t in r]
+    return [(Token(t[0],              # token URL
+                   t[1],              # handler URL
+                   json.loads(t[2])), # the token itself
+
+             Handler.build(t[3],             # handler kind
+                           json.loads(t[4])) # handler configuration
+            ) for t in r]
 
   def get(url, db):
     r = db.cursor().execute('''
@@ -187,26 +302,6 @@ class Token():
        where url = ?
     ''', (json.dumps(self.token), self.url))
     db.commit()
-
-  def refresh(self, base_uri):
-    r = requests.post(
-      f'https://login.microsoftonline.com/{self.token["tenant_id"]}/oauth2/v2.0/token',
-      data={
-        'grant_type': 'refresh_token',
-        'refresh_token': self.token['refresh_token'],
-        'client_id': self.token['client_id'],
-        'client_secret': self.token['client_secret'],
-        'scope': ' '.join(self.token['scopes']),
-        'redirect_uri': '/'.join([base_uri, 'a', self.handler_url]),
-      }
-    ).json()
-
-    print('REFRESH TOKEN::')
-    print(json.dumps(r, indent=2))
-
-    self.token['access_token'] = r['access_token']
-    self.token['refresh_token'] = r['refresh_token']
-    return r['expires_in']
 
   def exportable(self, base_uri):
     return {
@@ -285,8 +380,8 @@ def version():
 @api_key_required()
 def refresh():
   r = []
-  for token in Token.needing_refresh(get_db()):
+  for (token, handler) in Token.needing_refresh(get_db()):
     r.append(token.url)
-    expires_in = token.refresh(BASE_URI)
+    expires_in = handler.refresh_token(BASE_URI)
     token.save(get_db(), expires_in)
   return r

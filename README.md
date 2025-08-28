@@ -173,3 +173,74 @@ refresh-1  | [2024-08-13 19:22:14+0000] []
 refresh-1  | [2024-08-13 19:27:14+0000] ["vv/azure/t0"]
 refresh-1  | [2024-08-13 19:32:15+0000] []
 ```
+
+## Reference
+
+This section describes the configuration options for applications.
+To reiterate the prior example, if we create a new app named 'foo'
+like this:
+
+```console
+$ curl https://ot.example.com/_/foo \
+       -H 'Content-Type: application/json' \
+       -H 'Accept: application/json' \
+       --data-binary=@handler.json
+```
+
+Then the `handler.json` should contain a JSON configuration that
+conforms to the following specification.
+
+- `kind`: Identifies the Oauth2 provider, which allows oath-taker
+  to _guess_ at certain provider-specific values for things like
+  authorization endpoint, token endpoint, etc.
+
+  Current values for `kind` are:
+
+  - `microsoft/v1` - Microsoft Entra ID (formerly Azure AD)
+  - `zoho/v1` - Zoho (CRM, et al)
+
+  Each provider has a dedicated subsection below that describes
+  the nature of its implementation and behavior.
+
+- `config`: Provider-specific configuration for the endpoint.  See
+   the following subsections for the definitions for your chosen
+   provider type.
+
+### `microsoft/v1` Provider - Microsoft Entra ID
+
+This provider handles authentication with the Microsoft Entra ID
+platform inside of Microsoft Azure.
+
+It uses the following endpoints:
+
+  - Authorization: `https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/authorize`
+  - Token:         `https://login.microsoftonline.com/{TENANT}/oauth2/v2.0/token`
+
+The following `config` keys are recognized:
+
+- `config.tenant_id` - The UUID of your Azure tenant.
+- `config.client_id` - The Client ID of your registered Enterprise Application.
+- `config.client_secret` - Your registered application's Client Secret.
+- `config.scopes` - A list of scopes to request when
+  authenticating on behalf of an Entra user.  A good starting
+  point is to include at least
+  `https://graph.microsoft.com/User.Read` for self-lookup.
+
+### `zoho/v1` Provider - Zoho CRM and friends
+
+This provider handlers authentication against Zoho, a CRM and
+CRM-adjacent SaaS platform.
+
+It uses the following endpoints:
+
+  - Authorization: `https://accounts.zoho.com/oauth/v2/auth`
+  - Token:         `https://accounts.zoho.com/oauth/v2/token`
+
+The following `config` keys are recognized:
+
+- `config.client_id` - The Client ID of your registered API Application.
+- `config.client_secret` - Your registered application's Client Secret.
+- `config.scopes` - A list of scopes to request when
+  authenticating on behalf of a Zoho user.  For example, to gain
+  full read / write access to all modules in Zoho CRM, use
+  `ZohoCRM.modules.ALL`.
