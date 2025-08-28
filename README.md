@@ -20,7 +20,7 @@ https://ot.example.com, we can set up a new app called 'foo':
 $ curl https://ot.example.com/_/foo \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
-       --data-binary=@handler.json
+       --data-binary @handler.json
 ```
 
 where `handler.json` looks something like this:
