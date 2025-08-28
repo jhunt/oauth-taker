@@ -1,4 +1,4 @@
-FROM alpine:3 as db
+FROM alpine:3 AS db
 RUN apk add sqlite
 WORKDIR /data
 COPY schema.sql .
