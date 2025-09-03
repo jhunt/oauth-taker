@@ -4,6 +4,7 @@ import requests
 import sqlite3
 import os
 import json
+import traceback
 
 DATABASE = os.getenv('DATABASE', 'app.db')
 BASE_URI = os.getenv('BASE_URI', 'http://localhost/')
@@ -393,4 +394,5 @@ def refresh():
       r.append(token.url)
     except Exception as e:
       print(f'{token.url}: failed with exception (skipping): {e}', flush=True)
+      print(traceback.format_exc(), flus=True)
   return r
