@@ -231,7 +231,7 @@ if (!('t' in q)) {
 
     got = self.config.copy()
     got['access_token'] = r['access_token']
-    got['refresh_token'] = r['refresh_token']
+    got['refresh_token'] = token.token['refresh_token'] # zoho does not repeat this back
     return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
 class Token():
