@@ -26,8 +26,8 @@ services:
         apk add curl
         echo "[$$(date +'%Y-%m-%d %H:%M:%S%z')] starting up; checking every $$EVERY seconds."
         while /bin/true; do
-          sleep $$EVERY
           echo -n "[$$(date +'%Y-%m-%d %H:%M:%S%z')] "
           curl -X POST -s http://app:5000/r -H "Authorization: API-Key $$API_KEY"
+          sleep $$EVERY
         done
         echo "[$$(date +'%Y-%m-%d %H:%M:%S%z')] shutting down."
