@@ -150,6 +150,7 @@ if (!('t' in q)) {
     return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
   def refresh_token(self, token, base_uri):
+    id = 't0' # FIXME: if we ever want to support multiple tokens per client...
     r = requests.post(
       f'https://login.microsoftonline.com/{self.config["tenant_id"]}/oauth2/v2.0/token',
       data={
@@ -215,6 +216,7 @@ if (!('t' in q)) {
     return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
   def refresh_token(self, token, base_uri):
+    id = 't0' # FIXME: if we ever want to support multiple tokens per client...
     r = requests.post(
       f'https://accounts.zoho.com/oauth/v2/token',
       data={
