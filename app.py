@@ -396,5 +396,5 @@ def refresh():
       r.append(token.url)
     except Exception as e:
       print(f'{token.url}: failed with exception (skipping): {e}', flush=True)
-      print(traceback.format_exc(), flus=True)
+      print(traceback.format_exc(), flush=True)
   return r
