@@ -391,7 +391,7 @@ def refresh():
     print('forcing refresh (?f=yes)...', flush=True)
   for (token, handler) in Token.needing_refresh(get_db(), force):
     try:
-      expires_in = handler.refresh_token(token, BASE_URI)
+      (token, expires_in) = handler.refresh_token(token, BASE_URI)
       token.save(get_db(), expires_in)
       r.append(token.url)
     except Exception as e:
