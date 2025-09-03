@@ -240,7 +240,7 @@ class Token():
     self.handler_url = handler_url
     self.token = token
 
-  def needing_refresh(db):
+  def needing_refresh(db, force = False):
     r = db.cursor().execute('''
       select tokens.url,
              tokens.handler_url,
@@ -252,8 +252,8 @@ class Token():
         from tokens
         join handlers
           on tokens.handler_url = handlers.url
-       where refresh_after < current_timestamp
-    ''')
+       where 1=? or refresh_after < current_timestamp
+    ''', (1 if force else 0,))
     return [(Token(t[0],              # token URL
                    t[1],              # handler URL
                    json.loads(t[2])), # the token itself
@@ -383,7 +383,10 @@ def version():
 @api_key_required()
 def refresh():
   r = []
-  for (token, handler) in Token.needing_refresh(get_db()):
+  force = request.args.get('f') == 'yes'
+  if force:
+    print('forcing refresh (?f=yes)...', flush=True)
+  for (token, handler) in Token.needing_refresh(get_db(), force):
     try:
       expires_in = handler.refresh_token(token, BASE_URI)
       token.save(get_db(), expires_in)
