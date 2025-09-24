@@ -65,6 +65,8 @@ class Handler():
     self.config = config
 
   def build(url, kind, config):
+    if kind == 'google/v1':
+      return GoogleV1Handler(url, kind, config)
     if kind == 'microsoft/v1':
       return MicrosoftV1Handler(url, kind, config)
     if kind == 'zoho/v1':
@@ -102,6 +104,71 @@ class Handler():
 
   def refresh_token(self, token):
     raise 'handler.refresh_token() not implemented'
+
+class GoogleV1Handler(Handler):
+  def ui(self, base_uri):
+    return render_template_string('''<script>
+const q = Object.fromEntries(
+  document.location.search.replace(/^\\?/, '').split('&').map(s => [
+    decodeURIComponent(s.split(/=/, 2)[0]),
+    decodeURIComponent(s.split(/=/, 2)[1]),
+  ]));
+if (!('t' in q)) {
+  document.location.href = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id={{ client_id }}' +
+    '&response_type=code' +
+    '&redirect_uri=' + encodeURIComponent('{{ redirect_uri }}') +
+    '&scope=' + encodeURIComponent('{{ scopes }}') +
+    '&access_type=offline';
+} else {
+  document.write('<pre style="white-space: pre-wrap">');
+  document.write(JSON.stringify(q, null, '  '));
+  document.write('</pre>');
+}</script>''',
+    client_id    = self.config['client_id'],
+    redirect_uri = '/'.join([base_uri, 'a', self.url]),
+    scopes       = ' '.join(self.config['scopes'])
+  )
+
+  def exchange_code(self, id, code, base_uri):
+    r = requests.post(
+      f'https://oauth2.googleapis.com/token',
+      data={
+        'client_id': self.config['client_id'],
+        'client_secret': self.config['client_secret'],
+        'code': code,
+        'redirect_uri': '/'.join([base_uri, 'a', self.url]),
+        'grant_type': 'authorization_code',
+      }
+    ).json()
+    print('EXCHANGE CODE::', flush=True)
+    print(json.dumps(r, indent=2), flush=True)
+
+    got = self.config.copy()
+    got['access_token'] = r['access_token']
+    got['refresh_token'] = r['refresh_token']
+    return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
+
+  def refresh_token(self, token, base_uri):
+    id = 't0' # FIXME: if we ever want to support multiple tokens per client...
+    r = requests.post(
+      f'https://oauth2.googleapis.com/token',
+      data={
+        'grant_type': 'refresh_token',
+        'refresh_token': token.token['refresh_token'],
+        'client_id': self.config['client_id'],
+        'client_secret': self.config['client_secret'],
+        'redirect_uri': '/'.join([base_uri, 'a', self.url]),
+      }
+    ).json()
+
+    print('REFRESH TOKEN::', flush=True)
+    print(json.dumps(r, indent=2), flush=True)
+
+    got = self.config.copy()
+    got['access_token'] = r['access_token']
+    got['refresh_token'] = token.token['refresh_token'] # google does not repeat this back
+    return Token('/'.join([self.url, id]), self.url, got), r['expires_in']
 
 class MicrosoftV1Handler(Handler):
   def ui(self, base_uri):
