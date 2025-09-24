@@ -17,7 +17,7 @@ For example, assuming we have deployed and are accessible on
 https://ot.example.com, we can set up a new app called 'foo':
 
 ```console
-$ curl https://ot.example.com/_/foo \
+$ curl -X POST https://ot.example.com/_/foo \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
        --data-binary @handler.json
@@ -56,13 +56,13 @@ clients (see below) at `/t/foo/t0`.  It is my plan to add the
 ability to name tokens during the UI setup phase and support
 multiple tokens from the same Oauth2 app / client in the future.
 
-To retrieve the actual access token, the `/_/foo/t0` endpoint
+To retrieve the actual access token, the `/t/foo/t0` endpoint
 should be access via an HTTP GET request:
 
 ```console
 $ curl -H 'Authorization: API-Key open-sesame (see below)' \
        -H 'Accept: application/json' \
-       https://ot.example.com/_/foo/t0
+       https://ot.example.com/t/foo/t0
 {
   "access_token": "..."
 }
@@ -181,7 +181,7 @@ To reiterate the prior example, if we create a new app named 'foo'
 like this:
 
 ```console
-$ curl https://ot.example.com/_/foo \
+$ curl -X POST https://ot.example.com/_/foo \
        -H 'Content-Type: application/json' \
        -H 'Accept: application/json' \
        --data-binary=@handler.json
